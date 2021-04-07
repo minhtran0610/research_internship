@@ -58,7 +58,8 @@ Let the user find their car in the database using the brand name,
 model name, version name, and model year
 :param database: pandas.Dataframe,
     The car database
-:return: The CO2 emission of the car with is entered by the user
+:return: float,
+    The CO2 emission of the car entered by the user
 """
 def get_car_emission(database):
     while True:
@@ -122,6 +123,10 @@ def get_car_emission(database):
 
 """
 Find the place with the keyword given by the user
+:param gmaps: Google Maps Client Object,
+    The Google Maps Client provide by Google
+:return: str,
+    The address of the search result the user chooses
 """
 def find_place(gmaps):
     while True:
@@ -152,6 +157,17 @@ def find_place(gmaps):
                 print("Invalid choice.")
 
 
+"""
+Get the distance of the 2 places using the APIs from Google
+:param gmaps: Google Maps Client object,
+    The Google Maps Client provided by Google
+:param origin: str,
+    The origin's address
+:param destination: str,
+    The destination's address
+:return: float,
+    The distance in kilometers.
+"""
 def get_distance(gmaps, origin, destination):
     # Using Google Maps to calculate the distance
     result = gmaps.distance_matrix(origin, destination, 'driving')
@@ -162,15 +178,26 @@ def get_distance(gmaps, origin, destination):
     return distance/1000
 
 
+"""
+Calculate the distance of the trip by letting the user enter
+the origin and destination, and return the distance in kilometers
+:param gmaps: Google Maps Client object,
+    The Google Maps Client provided by Google
+:return: float,
+    The distance in kilometers
+"""
 def calculate_distance_trip(gmaps):
+    # Get the address of the origin
     print("Origin.")
     origin = find_place(gmaps)
     print()
 
+    # Get the address of the destination
     print("Destination.")
     destination = find_place(gmaps)
     print()
 
+    # Return the distance
     return get_distance(gmaps, origin, destination)
 
 
