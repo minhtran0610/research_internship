@@ -1,6 +1,7 @@
 import googlemaps
 import pandas as pd
 import numpy as np
+import re
 
 
 """
@@ -201,20 +202,71 @@ def calculate_distance_trip(gmaps):
     return get_distance(gmaps, origin, destination)
 
 
-def main():
-    # Get the API key
-    api_key = get_api_key("google_api_key.txt")
+"""
+Remove the HTML tags from a string.
+:param text: str,
+    The string to remove the HTML tags
+:return: str,
+    The string whose HTML tags has been cleared
+Reference: Galvis, J. (2020, September 19). How to strip html tags from a string in Python.
+Medium. https://medium.com/@jorlugaqui/how-to-strip-html-tags-from-a-string-in-python-7cb81a2bbf44. 
+"""
+def remove_html_tags(text):
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
 
-    # Retrieve the Google Maps object
-    gmaps = googlemaps.Client(key=api_key)
 
-    # Retrieve the car database from Traficom. The database has been filtered
-    # to ensure the perfomance of the program
-    traficom_database = pd.read_csv("filtered_data_traficom.csv")
+"""
+Get directions from Google Maps and return the directions in
+HTML format.
+:param gmaps: googlemaps.Client,
+    The Client object for the Google Maps API.
+:param origin: str,
+    The origin place in string format.
+:param destination: str,
+    The destination in str format.
+:return steps_html: list,
+    The list containing the steps in HTML format.
+"""
+def get_direction(gmaps, origin, destination):
+    # Retrieve the result
+    googlemaps_results = gmaps.directions(origin, destination, 'driving')[0]['legs'][0]['steps']
 
+    # Filter the result
+    steps_html = []
+    for item in googlemaps_results:
+        steps_html.append(item['html_instructions'])
+    
+    return steps_html
+
+
+"""
+Print the information of the car according to Traficom
+:param database: pandas.Dataframe,
+    The car database from Traficom
+"""
+def print_car_emission(database):
+    # Get the CO2 emission of the car
+    print("Choose your car.")
+    co2_emission = get_car_emission(database)
+    # Print the result 
+    print(f"The average CO2 emission of the car, according to Traficom, is: {co2_emission} g/km")
+    print()
+
+
+"""
+Let the user input the car and the destinations of the trip.
+Calculate the distance, average car emissions and the total
+admissions of the trip.
+:param database: pandas.DataFrame,
+    The database for the cars from Traficom
+:param gmaps: googlemaps Client,
+    The Google Maps client for the APIs
+"""
+def print_emission_trip(database, gmaps):
     # Get the CO2 emission of the car
     print("First, choose your car.")
-    co2_emission = get_car_emission(traficom_database)
+    co2_emission = get_car_emission(database)
     # Print the result 
     print(f"The average CO2 emission of the car, according to Traficom, is: {co2_emission} g/km")
     print()
@@ -229,6 +281,91 @@ def main():
     # Print the result
     result = co2_emission * distance
     print(f"The total CO2 emission of the trip is: {result:.2f} g")
+    print()
+
+
+"""
+Print the direction
+"""
+def print_direction(gmaps):
+    # Get the address of the origin
+    print("Origin.")
+    origin = find_place(gmaps)
+    print()
+
+    # Get the address of the destination
+    print("Destination.")
+    destination = find_place(gmaps)
+    print()
+
+    # Process the result and print the directions
+    steps_html = get_direction(gmaps, origin, destination)
+
+    last_steps = steps_html.pop()
+    last_steps_separation = last_steps.split('<div style="font-size:0.9em">')
+    for step_html in last_steps_separation:
+        steps_html.append(step_html)
+    
+    steps_str = []
+    for step_html in steps_html:
+        steps_str.append(remove_html_tags(step_html))
+
+    # Print the result
+    for step in steps_str:
+        print(step)
+    print()
+
+
+"""
+Print the lists of commands
+"""
+def print_commands():
+    command_list = ["CAR INFORMATION", "CO2 CALCULATOR", "DIRECTION", "HELP", "QUIT"]
+    command_abbreviation_list = ["CI", "CC", "D", "H", "Q"]
+    command_function = [
+        "Print the car's average emission according to Traficom",
+        "Calculate the CO2 emission according to the places of the trip and the car's average emission",
+        "Give directions for the desired origins and destinations",
+        "Print the commands of the program",
+        "Quit the program"
+    ]
+
+    for i in range(len(command_list)):
+        print(f"{command_list[i]} or {command_abbreviation_list[i]}: {command_function[i]}")
+    print()
+    
+    
+def main():
+    # Get the API key
+    api_key = get_api_key("google_api_key.txt")
+
+    # Retrieve the Google Maps object
+    gmaps = googlemaps.Client(key=api_key)
+
+    # Retrieve the car database from Traficom. The database has been filtered
+    # to ensure the perfomance of the program
+    traficom_database = pd.read_csv("filtered_data_traficom.csv")
+
+    while True:
+        command = input("Enter command. To see the list of commands, enter HELP: ")
+
+        if command.upper() == "CAR INFORMATION" or command.upper() == "CI":
+            print_car_emission(traficom_database)
+
+        elif command.upper() == "CO2 CAlCULATOR" or command.upper() == "CC":
+            print_emission_trip(traficom_database, gmaps)
+
+        elif command.upper() == "DIRECTION" or command.upper() == "D":
+            print_direction(gmaps)
+
+        elif command.upper() == "HELP" or command.upper() == "H":
+            print_commands()
+        
+        elif command.upper() == "QUIT" or command.upper() == "Q":
+            break
+
+        else:
+            print("Invalid command")
 
 
 if __name__ == "__main__":
